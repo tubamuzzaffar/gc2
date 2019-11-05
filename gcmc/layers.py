@@ -147,229 +147,229 @@ class Dense(Layer):
             return outputs_u, outputs_v
 
 
-class StackGCN(Layer):
-    """Graph convolution layer for bipartite graphs and sparse inputs."""
+# class StackGCN(Layer):
+#     """Graph convolution layer for bipartite graphs and sparse inputs."""
 
-    def __init__(self, input_dim, output_dim, support, support_t, num_support, u_features_nonzero=None,
-                 v_features_nonzero=None, sparse_inputs=False, dropout=0.,
-                 act=tf.nn.relu, share_user_item_weights=True, **kwargs):
-        super(StackGCN, self).__init__(**kwargs)
+#     def __init__(self, input_dim, output_dim, support, support_t, num_support, u_features_nonzero=None,
+#                  v_features_nonzero=None, sparse_inputs=False, dropout=0.,
+#                  act=tf.nn.relu, share_user_item_weights=True, **kwargs):
+#         super(StackGCN, self).__init__(**kwargs)
 
-        assert output_dim % num_support == 0, 'output_dim must be multiple of num_support for stackGC layer'
+#         assert output_dim % num_support == 0, 'output_dim must be multiple of num_support for stackGC layer'
 
-        with tf.variable_scope(self.name + '_vars'):
-            self.vars['weights_u'] = weight_variable_random_uniform(input_dim, output_dim, name='weights_u')
+#         with tf.variable_scope(self.name + '_vars'):
+#             self.vars['weights_u'] = weight_variable_random_uniform(input_dim, output_dim, name='weights_u')
 
-            if not share_user_item_weights:
-                self.vars['weights_v'] = weight_variable_random_uniform(input_dim, output_dim, name='weights_v')
+#             if not share_user_item_weights:
+#                 self.vars['weights_v'] = weight_variable_random_uniform(input_dim, output_dim, name='weights_v')
 
-            else:
-                self.vars['weights_v'] = self.vars['weights_u']
+#             else:
+#                 self.vars['weights_v'] = self.vars['weights_u']
 
-        self.weights_u = tf.split(value=self.vars['weights_u'], axis=1, num_or_size_splits=num_support)
-        self.weights_v = tf.split(value=self.vars['weights_v'], axis=1, num_or_size_splits=num_support)
+#         self.weights_u = tf.split(value=self.vars['weights_u'], axis=1, num_or_size_splits=num_support)
+#         self.weights_v = tf.split(value=self.vars['weights_v'], axis=1, num_or_size_splits=num_support)
 
-        self.dropout = dropout
+#         self.dropout = dropout
 
-        self.sparse_inputs = sparse_inputs
-        self.u_features_nonzero = u_features_nonzero
-        self.v_features_nonzero = v_features_nonzero
-        if sparse_inputs:
-            assert u_features_nonzero is not None and v_features_nonzero is not None, \
-                'u_features_nonzero and v_features_nonzero can not be None when sparse_inputs is True'
+#         self.sparse_inputs = sparse_inputs
+#         self.u_features_nonzero = u_features_nonzero
+#         self.v_features_nonzero = v_features_nonzero
+#         if sparse_inputs:
+#             assert u_features_nonzero is not None and v_features_nonzero is not None, \
+#                 'u_features_nonzero and v_features_nonzero can not be None when sparse_inputs is True'
 
-        self.support = tf.sparse_split(axis=1, num_split=num_support, sp_input=support)
-        self.support_transpose = tf.sparse_split(axis=1, num_split=num_support, sp_input=support_t)
+#         self.support = tf.sparse_split(axis=1, num_split=num_support, sp_input=support)
+#         self.support_transpose = tf.sparse_split(axis=1, num_split=num_support, sp_input=support_t)
 
-        self.act = act
+#         self.act = act
 
-        if self.logging:
-            self._log_vars()
+#         if self.logging:
+#             self._log_vars()
 
-    def _call(self, inputs):
-        x_u = inputs[0]
-        x_v = inputs[1]
+#     def _call(self, inputs):
+#         x_u = inputs[0]
+#         x_v = inputs[1]
 
-        if self.sparse_inputs:
-            x_u = dropout_sparse(x_u, 1 - self.dropout, self.u_features_nonzero)
-            x_v = dropout_sparse(x_v, 1 - self.dropout, self.v_features_nonzero)
-        else:
-            x_u = tf.nn.dropout(x_u, 1 - self.dropout)
-            x_v = tf.nn.dropout(x_v, 1 - self.dropout)
+#         if self.sparse_inputs:
+#             x_u = dropout_sparse(x_u, 1 - self.dropout, self.u_features_nonzero)
+#             x_v = dropout_sparse(x_v, 1 - self.dropout, self.v_features_nonzero)
+#         else:
+#             x_u = tf.nn.dropout(x_u, 1 - self.dropout)
+#             x_v = tf.nn.dropout(x_v, 1 - self.dropout)
 
-        supports_u = []
-        supports_v = []
+#         supports_u = []
+#         supports_v = []
 
-        for i in range(len(self.support)):
-            tmp_u = dot(x_u, self.weights_u[i], sparse=self.sparse_inputs)
-            tmp_v = dot(x_v, self.weights_v[i], sparse=self.sparse_inputs)
+#         for i in range(len(self.support)):
+#             tmp_u = dot(x_u, self.weights_u[i], sparse=self.sparse_inputs)
+#             tmp_v = dot(x_v, self.weights_v[i], sparse=self.sparse_inputs)
 
-            support = self.support[i]
-            support_transpose = self.support_transpose[i]
+#             support = self.support[i]
+#             support_transpose = self.support_transpose[i]
 
-            supports_u.append(tf.sparse_tensor_dense_matmul(support, tmp_v))
-            supports_v.append(tf.sparse_tensor_dense_matmul(support_transpose, tmp_u))
+#             supports_u.append(tf.sparse_tensor_dense_matmul(support, tmp_v))
+#             supports_v.append(tf.sparse_tensor_dense_matmul(support_transpose, tmp_u))
 
-        z_u = tf.concat(axis=1, values=supports_u)
-        z_v = tf.concat(axis=1, values=supports_v)
+#         z_u = tf.concat(axis=1, values=supports_u)
+#         z_v = tf.concat(axis=1, values=supports_v)
 
-        u_outputs = self.act(z_u)
-        v_outputs = self.act(z_v)
+#         u_outputs = self.act(z_u)
+#         v_outputs = self.act(z_v)
 
-        return u_outputs, v_outputs
+#         return u_outputs, v_outputs
 
-    def __call__(self, inputs):
-        with tf.name_scope(self.name):
-            if self.logging and not self.sparse_inputs:
-                tf.summary.histogram(self.name + '/inputs_u', inputs[0])
-                tf.summary.histogram(self.name + '/inputs_v', inputs[1])
-            outputs_u, outputs_v = self._call(inputs)
-            if self.logging:
-                tf.summary.histogram(self.name + '/outputs_u', outputs_u)
-                tf.summary.histogram(self.name + '/outputs_v', outputs_v)
-            return outputs_u, outputs_v
+#     def __call__(self, inputs):
+#         with tf.name_scope(self.name):
+#             if self.logging and not self.sparse_inputs:
+#                 tf.summary.histogram(self.name + '/inputs_u', inputs[0])
+#                 tf.summary.histogram(self.name + '/inputs_v', inputs[1])
+#             outputs_u, outputs_v = self._call(inputs)
+#             if self.logging:
+#                 tf.summary.histogram(self.name + '/outputs_u', outputs_u)
+#                 tf.summary.histogram(self.name + '/outputs_v', outputs_v)
+#             return outputs_u, outputs_v
 
 
-class OrdinalMixtureGCN(Layer):
+# class OrdinalMixtureGCN(Layer):
 
-    """Graph convolution layer for bipartite graphs and sparse inputs."""
+#     """Graph convolution layer for bipartite graphs and sparse inputs."""
 
-    def __init__(self, input_dim, output_dim, support, support_t, num_support, u_features_nonzero=None,
-                 v_features_nonzero=None, sparse_inputs=False, dropout=0.,
-                 act=tf.nn.relu, bias=False, share_user_item_weights=False, self_connections=False, **kwargs):
-        super(OrdinalMixtureGCN, self).__init__(**kwargs)
+#     def __init__(self, input_dim, output_dim, support, support_t, num_support, u_features_nonzero=None,
+#                  v_features_nonzero=None, sparse_inputs=False, dropout=0.,
+#                  act=tf.nn.relu, bias=False, share_user_item_weights=False, self_connections=False, **kwargs):
+#         super(OrdinalMixtureGCN, self).__init__(**kwargs)
 
-        with tf.variable_scope(self.name + '_vars'):
+#         with tf.variable_scope(self.name + '_vars'):
 
-            self.vars['weights_u'] = tf.stack([weight_variable_random_uniform(input_dim, output_dim,
-                                                                             name='weights_u_%d' % i)
-                                              for i in range(num_support)], axis=0)
+#             self.vars['weights_u'] = tf.stack([weight_variable_random_uniform(input_dim, output_dim,
+#                                                                              name='weights_u_%d' % i)
+#                                               for i in range(num_support)], axis=0)
 
-            if bias:
-                self.vars['bias_u'] = bias_variable_const([output_dim], 0.01, name="bias_u")
+#             if bias:
+#                 self.vars['bias_u'] = bias_variable_const([output_dim], 0.01, name="bias_u")
 
-            if not share_user_item_weights:
-                self.vars['weights_v'] = tf.stack([weight_variable_random_uniform(input_dim, output_dim,
-                                                                                 name='weights_v_%d' % i)
-                                                  for i in range(num_support)], axis=0)
+#             if not share_user_item_weights:
+#                 self.vars['weights_v'] = tf.stack([weight_variable_random_uniform(input_dim, output_dim,
+#                                                                                  name='weights_v_%d' % i)
+#                                                   for i in range(num_support)], axis=0)
 
-                if bias:
-                    self.vars['bias_v'] = bias_variable_const([output_dim], 0.01, name="bias_v")
+#                 if bias:
+#                     self.vars['bias_v'] = bias_variable_const([output_dim], 0.01, name="bias_v")
 
-            else:
-                self.vars['weights_v'] = self.vars['weights_u']
-                if bias:
-                    self.vars['bias_v'] = self.vars['bias_u']
+#             else:
+#                 self.vars['weights_v'] = self.vars['weights_u']
+#                 if bias:
+#                     self.vars['bias_v'] = self.vars['bias_u']
 
-        self.weights_u = self.vars['weights_u']
-        self.weights_v = self.vars['weights_v']
+#         self.weights_u = self.vars['weights_u']
+#         self.weights_v = self.vars['weights_v']
 
-        self.dropout = dropout
+#         self.dropout = dropout
 
-        self.sparse_inputs = sparse_inputs
-        self.u_features_nonzero = u_features_nonzero
-        self.v_features_nonzero = v_features_nonzero
-        if sparse_inputs:
-            assert u_features_nonzero is not None and v_features_nonzero is not None, \
-                'u_features_nonzero and v_features_nonzero can not be None when sparse_inputs is True'
+#         self.sparse_inputs = sparse_inputs
+#         self.u_features_nonzero = u_features_nonzero
+#         self.v_features_nonzero = v_features_nonzero
+#         if sparse_inputs:
+#             assert u_features_nonzero is not None and v_features_nonzero is not None, \
+#                 'u_features_nonzero and v_features_nonzero can not be None when sparse_inputs is True'
 
-        self.self_connections = self_connections
+#         self.self_connections = self_connections
 
-        self.bias = bias
-        support = tf.sparse_split(axis=1, num_split=num_support, sp_input=support)
+#         self.bias = bias
+#         support = tf.sparse_split(axis=1, num_split=num_support, sp_input=support)
 
-        support_t = tf.sparse_split(axis=1, num_split=num_support, sp_input=support_t)
+#         support_t = tf.sparse_split(axis=1, num_split=num_support, sp_input=support_t)
 
-        if self_connections:
-            self.support = support[:-1]
-            self.support_transpose = support_t[:-1]
-            self.u_self_connections = support[-1]
-            self.v_self_connections = support_t[-1]
-            self.weights_u = self.weights_u[:-1]
-            self.weights_v = self.weights_v[:-1]
-            self.weights_u_self_conn = self.weights_u[-1]
-            self.weights_v_self_conn = self.weights_v[-1]
+#         if self_connections:
+#             self.support = support[:-1]
+#             self.support_transpose = support_t[:-1]
+#             self.u_self_connections = support[-1]
+#             self.v_self_connections = support_t[-1]
+#             self.weights_u = self.weights_u[:-1]
+#             self.weights_v = self.weights_v[:-1]
+#             self.weights_u_self_conn = self.weights_u[-1]
+#             self.weights_v_self_conn = self.weights_v[-1]
 
-        else:
-            self.support = support
-            self.support_transpose = support_t
-            self.u_self_connections = None
-            self.v_self_connections = None
-            self.weights_u_self_conn = None
-            self.weights_v_self_conn = None
+#         else:
+#             self.support = support
+#             self.support_transpose = support_t
+#             self.u_self_connections = None
+#             self.v_self_connections = None
+#             self.weights_u_self_conn = None
+#             self.weights_v_self_conn = None
 
-        self.support_nnz = []
-        self.support_transpose_nnz = []
-        for i in range(len(self.support)):
-            nnz = tf.reduce_sum(tf.shape(self.support[i].values))
-            self.support_nnz.append(nnz)
-            self.support_transpose_nnz.append(nnz)
+#         self.support_nnz = []
+#         self.support_transpose_nnz = []
+#         for i in range(len(self.support)):
+#             nnz = tf.reduce_sum(tf.shape(self.support[i].values))
+#             self.support_nnz.append(nnz)
+#             self.support_transpose_nnz.append(nnz)
 
-        self.act = act
+#         self.act = act
 
-        if self.logging:
-            self._log_vars()
+#         if self.logging:
+#             self._log_vars()
 
-    def _call(self, inputs):
+#     def _call(self, inputs):
 
-        if self.sparse_inputs:
-            x_u = dropout_sparse(inputs[0], 1 - self.dropout, self.u_features_nonzero)
-            x_v = dropout_sparse(inputs[1], 1 - self.dropout, self.v_features_nonzero)
-        else:
-            x_u = tf.nn.dropout(inputs[0], 1 - self.dropout)
-            x_v = tf.nn.dropout(inputs[1], 1 - self.dropout)
+#         if self.sparse_inputs:
+#             x_u = dropout_sparse(inputs[0], 1 - self.dropout, self.u_features_nonzero)
+#             x_v = dropout_sparse(inputs[1], 1 - self.dropout, self.v_features_nonzero)
+#         else:
+#             x_u = tf.nn.dropout(inputs[0], 1 - self.dropout)
+#             x_v = tf.nn.dropout(inputs[1], 1 - self.dropout)
 
-        supports_u = []
-        supports_v = []
+#         supports_u = []
+#         supports_v = []
 
-        # self-connections with identity matrix as support
-        if self.self_connections:
-            uw = dot(x_u, self.weights_u_self_conn, sparse=self.sparse_inputs)
-            supports_u.append(tf.sparse_tensor_dense_matmul(self.u_self_connections, uw))
+#         # self-connections with identity matrix as support
+#         if self.self_connections:
+#             uw = dot(x_u, self.weights_u_self_conn, sparse=self.sparse_inputs)
+#             supports_u.append(tf.sparse_tensor_dense_matmul(self.u_self_connections, uw))
 
-            vw = dot(x_v, self.weights_v_self_conn, sparse=self.sparse_inputs)
-            supports_v.append(tf.sparse_tensor_dense_matmul(self.v_self_connections, vw))
+#             vw = dot(x_v, self.weights_v_self_conn, sparse=self.sparse_inputs)
+#             supports_v.append(tf.sparse_tensor_dense_matmul(self.v_self_connections, vw))
 
-        wu = 0.
-        wv = 0.
-        for i in range(len(self.support)):
-            wu += self.weights_u[i]
-            wv += self.weights_v[i]
+#         wu = 0.
+#         wv = 0.
+#         for i in range(len(self.support)):
+#             wu += self.weights_u[i]
+#             wv += self.weights_v[i]
 
-            # multiply feature matrices with weights
-            tmp_u = dot(x_u, wu, sparse=self.sparse_inputs)
+#             # multiply feature matrices with weights
+#             tmp_u = dot(x_u, wu, sparse=self.sparse_inputs)
 
-            tmp_v = dot(x_v, wv, sparse=self.sparse_inputs)
+#             tmp_v = dot(x_v, wv, sparse=self.sparse_inputs)
 
-            support = self.support[i]
-            support_transpose = self.support_transpose[i]
+#             support = self.support[i]
+#             support_transpose = self.support_transpose[i]
 
-            # then multiply with rating matrices
-            supports_u.append(tf.sparse_tensor_dense_matmul(support, tmp_v))
-            supports_v.append(tf.sparse_tensor_dense_matmul(support_transpose, tmp_u))
+#             # then multiply with rating matrices
+#             supports_u.append(tf.sparse_tensor_dense_matmul(support, tmp_v))
+#             supports_v.append(tf.sparse_tensor_dense_matmul(support_transpose, tmp_u))
 
-        z_u = tf.add_n(supports_u)
-        z_v = tf.add_n(supports_v)
+#         z_u = tf.add_n(supports_u)
+#         z_v = tf.add_n(supports_v)
 
-        if self.bias:
-            z_u = tf.nn.bias_add(z_u, self.vars['bias_u'])
-            z_v = tf.nn.bias_add(z_v, self.vars['bias_v'])
+#         if self.bias:
+#             z_u = tf.nn.bias_add(z_u, self.vars['bias_u'])
+#             z_v = tf.nn.bias_add(z_v, self.vars['bias_v'])
 
-        u_outputs = self.act(z_u)
-        v_outputs = self.act(z_v)
+#         u_outputs = self.act(z_u)
+#         v_outputs = self.act(z_v)
 
-        return u_outputs, v_outputs
+#         return u_outputs, v_outputs
 
-    def __call__(self, inputs):
-        with tf.name_scope(self.name):
-            if self.logging and not self.sparse_inputs:
-                tf.summary.histogram(self.name + '/inputs_u', inputs[0])
-                tf.summary.histogram(self.name + '/inputs_v', inputs[1])
-            outputs_u, outputs_v = self._call(inputs)
-            if self.logging:
-                tf.summary.histogram(self.name + '/outputs_u', outputs_u)
-                tf.summary.histogram(self.name + '/outputs_v', outputs_v)
-            return outputs_u, outputs_v
+#     def __call__(self, inputs):
+#         with tf.name_scope(self.name):
+#             if self.logging and not self.sparse_inputs:
+#                 tf.summary.histogram(self.name + '/inputs_u', inputs[0])
+#                 tf.summary.histogram(self.name + '/inputs_v', inputs[1])
+#             outputs_u, outputs_v = self._call(inputs)
+#             if self.logging:
+#                 tf.summary.histogram(self.name + '/outputs_u', outputs_u)
+#                 tf.summary.histogram(self.name + '/outputs_v', outputs_v)
+#             return outputs_u, outputs_v
 
 
 class BilinearMixture(Layer):
