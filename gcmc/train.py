@@ -341,7 +341,7 @@ else:
                            num_items=num_items,
                            accum=ACCUM,
                            learning_rate=LR,
-                           logging=False)
+                           logging=True)
 
 # Convert sparse placeholders to tuples to construct feed_dict
 test_support = sparse_to_tuple(test_support)
