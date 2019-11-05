@@ -69,5 +69,5 @@ def rmse(logits, labels, class_values=None):
 def softmax_cross_entropy(outputs, labels):
     """ computes average softmax cross entropy """
 
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=outputs, labels=labels)
+    loss = tf.nn.softmax_cross_entropy_with_logits(logits=outputs, labels=labels)
     return tf.reduce_mean(loss)
