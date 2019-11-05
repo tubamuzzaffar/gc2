@@ -49,9 +49,6 @@ class Model(object):
 
         # Build sequential layer model
         self.activations.append(self.inputs)
-        for layer in self.layers:
-            hidden = layer(self.activations[-1])
-            self.activations.append(hidden)
         self.outputs = self.activations[-1]
 
         # Store model variables for easy access
