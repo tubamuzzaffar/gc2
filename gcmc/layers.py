@@ -135,18 +135,6 @@ class Dense(Layer):
 
         return u_outputs, v_outputs
 
-    def __call__(self, inputs):
-        with tf.name_scope(self.name):
-            if self.logging:
-                tf.summary.histogram(self.name + '/inputs_u', inputs[0])
-                tf.summary.histogram(self.name + '/inputs_v', inputs[1])
-            outputs_u, outputs_v = self._call(inputs)
-            if self.logging:
-                tf.summary.histogram(self.name + '/outputs_u', outputs_u)
-                tf.summary.histogram(self.name + '/outputs_v', outputs_v)
-            return outputs_u, outputs_v
-
-
 class StackGCN(Layer):
     """Graph convolution layer for bipartite graphs and sparse inputs."""
 
