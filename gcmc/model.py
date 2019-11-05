@@ -147,38 +147,6 @@ class RecommenderGAE(Model):
         tf.summary.scalar('rmse_score', self.rmse)
 
     def _build(self):
-        if self.accum == 'sum':
-            self.layers.append(OrdinalMixtureGCN(input_dim=self.input_dim,
-                                                 output_dim=self.hidden[0],
-                                                 support=self.support,
-                                                 support_t=self.support_t,
-                                                 num_support=self.num_support,
-                                                 u_features_nonzero=self.u_features_nonzero,
-                                                 v_features_nonzero=self.v_features_nonzero,
-                                                 sparse_inputs=True,
-                                                 act=tf.nn.relu,
-                                                 bias=False,
-                                                 dropout=self.dropout,
-                                                 logging=self.logging,
-                                                 share_user_item_weights=True,
-                                                 self_connections=False))
-
-        elif self.accum == 'stack':
-            self.layers.append(StackGCN(input_dim=self.input_dim,
-                                        output_dim=self.hidden[0],
-                                        support=self.support,
-                                        support_t=self.support_t,
-                                        num_support=self.num_support,
-                                        u_features_nonzero=self.u_features_nonzero,
-                                        v_features_nonzero=self.v_features_nonzero,
-                                        sparse_inputs=True,
-                                        act=tf.nn.relu,
-                                        dropout=self.dropout,
-                                        logging=self.logging,
-                                        share_user_item_weights=True))
-        else:
-            raise ValueError('accumulation function option invalid, can only be stack or sum.')
-
         self.layers.append(Dense(input_dim=self.hidden[0],
                                  output_dim=self.hidden[1],
                                  act=lambda x: x,
@@ -271,39 +239,6 @@ class RecommenderSideInfoGAE(Model):
         tf.summary.scalar('rmse_score', self.rmse)
 
     def _build(self):
-        if self.accum == 'sum':
-            self.layers.append(OrdinalMixtureGCN(input_dim=self.input_dim,
-                                                 output_dim=self.hidden[0],
-                                                 support=self.support,
-                                                 support_t=self.support_t,
-                                                 num_support=self.num_support,
-                                                 u_features_nonzero=self.u_features_nonzero,
-                                                 v_features_nonzero=self.v_features_nonzero,
-                                                 sparse_inputs=True,
-                                                 act=tf.nn.relu,
-                                                 bias=False,
-                                                 dropout=self.dropout,
-                                                 logging=self.logging,
-                                                 share_user_item_weights=True,
-                                                 self_connections=self.self_connections))
-
-        elif self.accum == 'stack':
-            self.layers.append(StackGCN(input_dim=self.input_dim,
-                                        output_dim=self.hidden[0],
-                                        support=self.support,
-                                        support_t=self.support_t,
-                                        num_support=self.num_support,
-                                        u_features_nonzero=self.u_features_nonzero,
-                                        v_features_nonzero=self.v_features_nonzero,
-                                        sparse_inputs=True,
-                                        act=tf.nn.relu,
-                                        dropout=self.dropout,
-                                        logging=self.logging,
-                                        share_user_item_weights=True))
-
-        else:
-            raise ValueError('accumulation function option invalid, can only be stack or sum.')
-
         self.layers.append(Dense(input_dim=self.num_side_features,
                                  output_dim=self.feat_hidden_dim,
                                  act=tf.nn.relu,
