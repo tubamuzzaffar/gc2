@@ -61,8 +61,9 @@ class Model(object):
         # Build metrics
         self._loss()
         self._accuracy()
+        self._rmse()
 
-        self.opt_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
+        self.opt_op = self.optimizer.minimize(self.rmse, global_step=self.global_step)
 
     def predict(self):
         pass
@@ -71,6 +72,9 @@ class Model(object):
         raise NotImplementedError
 
     def _accuracy(self):
+        raise NotImplementedError
+        
+    def _rmse(self):
         raise NotImplementedError
 
     def save(self, sess=None):
