@@ -122,12 +122,12 @@ class RecommenderGAE(Model):
 
         self.build()
 
-        moving_average_decay = 0.995
-        self.variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay, self.global_step)
-        self.variables_averages_op = self.variable_averages.apply(tf.trainable_variables())
+#         moving_average_decay = 0.995
+#         self.variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay, self.global_step)
+#         self.variables_averages_op = self.variable_averages.apply(tf.trainable_variables())
 
-        with tf.control_dependencies([self.opt_op]):
-            self.training_op = tf.group(self.variables_averages_op)
+#         with tf.control_dependencies([self.opt_op]):
+#             self.training_op = tf.group(self.variables_averages_op)
 
         self.embeddings = self.activations[2]
 
@@ -135,8 +135,7 @@ class RecommenderGAE(Model):
 
     def _loss(self):
         self.loss += softmax_cross_entropy(self.outputs, self.labels)
-
-        tf.summary.scalar('loss', self.loss)
+        #tf.summary.scalar('loss', self.loss)
 
     def _accuracy(self):
         self.accuracy = softmax_accuracy(self.outputs, self.labels)
@@ -144,40 +143,40 @@ class RecommenderGAE(Model):
     def _rmse(self):
         self.rmse = expected_rmse(self.outputs, self.labels, self.class_values)
 
-        tf.summary.scalar('rmse_score', self.rmse)
+#         tf.summary.scalar('rmse_score', self.rmse)
 
     def _build(self):
-        if self.accum == 'sum':
-            self.layers.append(OrdinalMixtureGCN(input_dim=self.input_dim,
-                                                 output_dim=self.hidden[0],
-                                                 support=self.support,
-                                                 support_t=self.support_t,
-                                                 num_support=self.num_support,
-                                                 u_features_nonzero=self.u_features_nonzero,
-                                                 v_features_nonzero=self.v_features_nonzero,
-                                                 sparse_inputs=True,
-                                                 act=tf.nn.relu,
-                                                 bias=False,
-                                                 dropout=self.dropout,
-                                                 logging=self.logging,
-                                                 share_user_item_weights=True,
-                                                 self_connections=False))
+#         if self.accum == 'sum':
+#             self.layers.append(OrdinalMixtureGCN(input_dim=self.input_dim,
+#                                                  output_dim=self.hidden[0],
+#                                                  support=self.support,
+#                                                  support_t=self.support_t,
+#                                                  num_support=self.num_support,
+#                                                  u_features_nonzero=self.u_features_nonzero,
+#                                                  v_features_nonzero=self.v_features_nonzero,
+#                                                  sparse_inputs=True,
+#                                                  act=tf.nn.relu,
+#                                                  bias=False,
+#                                                  dropout=self.dropout,
+#                                                  logging=self.logging,
+#                                                  share_user_item_weights=True,
+#                                                  self_connections=False))
 
-        elif self.accum == 'stack':
-            self.layers.append(StackGCN(input_dim=self.input_dim,
-                                        output_dim=self.hidden[0],
-                                        support=self.support,
-                                        support_t=self.support_t,
-                                        num_support=self.num_support,
-                                        u_features_nonzero=self.u_features_nonzero,
-                                        v_features_nonzero=self.v_features_nonzero,
-                                        sparse_inputs=True,
-                                        act=tf.nn.relu,
-                                        dropout=self.dropout,
-                                        logging=self.logging,
-                                        share_user_item_weights=True))
-        else:
-            raise ValueError('accumulation function option invalid, can only be stack or sum.')
+#         elif self.accum == 'stack':
+#             self.layers.append(StackGCN(input_dim=self.input_dim,
+#                                         output_dim=self.hidden[0],
+#                                         support=self.support,
+#                                         support_t=self.support_t,
+#                                         num_support=self.num_support,
+#                                         u_features_nonzero=self.u_features_nonzero,
+#                                         v_features_nonzero=self.v_features_nonzero,
+#                                         sparse_inputs=True,
+#                                         act=tf.nn.relu,
+#                                         dropout=self.dropout,
+#                                         logging=self.logging,
+#                                         share_user_item_weights=True))
+#         else:
+#             raise ValueError('accumulation function option invalid, can only be stack or sum.')
 
         self.layers.append(Dense(input_dim=self.hidden[0],
                                  output_dim=self.hidden[1],
